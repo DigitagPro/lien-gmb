@@ -3,92 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Clé API 2</title>
+    <title>Générateur QR Code GMB</title>
+    
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyUdF_mBUrpYGhVKTqeoK1mbjceyYpxzI&libraries=places" async defer></script>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
-        h2 { color: #333; margin-bottom: 5px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        h2 { color: #333; margin-bottom: 1.5rem; }
         
+        /* Style de la barre de recherche Google */
         input { 
-            width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; 
-            font-size: 16px; box-sizing: border-box; margin-bottom: 20px;
+            width: 100%; padding: 12px 15px; border: 2px solid #ddd; border-radius: 8px; 
+            font-size: 16px; box-sizing: border-box; transition: 0.3s;
         }
         input:focus { border-color: #4285F4; outline: none; }
 
         #result { margin-top: 25px; display: none; border-top: 1px solid #eee; padding-top: 20px; }
-        .place-name { font-weight: bold; font-size: 1.2rem; color: #202124; }
-        .qr-container { background: #fff; padding: 10px; border-radius: 10px; display: inline-block; margin-top: 10px; }
-        .btn { display: block; width: 100%; margin-top: 15px; padding: 12px; background-color: #0F9D58; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; }
+        .place-name { font-weight: bold; font-size: 1.2rem; color: #202124; margin-bottom: 5px; }
+        .place-address { color: #5f6368; font-size: 0.9rem; margin-bottom: 20px; }
         
-        /* Zone d'erreur */
-        #error-msg { color: red; font-size: 12px; margin-top: 10px; display: none; background: #ffe6e6; padding: 10px; border-radius: 5px; text-align: left; }
+        .qr-container { background: #f8f9fa; padding: 15px; border-radius: 10px; display: inline-block; }
+        img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+        
+        .btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: #4285F4; color: white; text-decoration: none; border-radius: 50px; font-weight: 500; font-size: 0.9rem; }
+        .btn:hover { background-color: #3367d6; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>📍 Test Nouvelle Clé</h2>
-    <p style="font-size: 12px; color: #666;">Essai avec la clé finissant par ...pxzI</p>
-
-    <input id="autocomplete" placeholder="Tapez une entreprise..." type="text" />
-
-    <div id="error-msg"></div>
+    <h2>📍 Générateur d'Avis</h2>
+    <p style="color:#666; font-size:0.9rem; margin-bottom: 20px;">Recherchez une entreprise pour générer son QR Code</p>
+    
+    <input id="autocomplete" placeholder="Entrez le nom de l'entreprise..." type="text" />
 
     <div id="result">
         <div id="placeName" class="place-name"></div>
+        <div id="placeAddress" class="place-address"></div>
+        
         <div class="qr-container">
             <img id="qrImage" src="" alt="QR Code" width="200">
         </div>
+        <br>
         <a id="reviewLink" class="btn" href="#" target="_blank">Tester le lien</a>
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyUdF_mBUrpYGhVKTqeoK1mbjceyYpxzI&libraries=places&language=fr&callback=initAutocomplete" async defer></script>
-
 <script>
+    // Cette fonction se lance quand l'API Google est chargée
+    window.onload = function() {
+        initAutocomplete();
+    };
+
     function initAutocomplete() {
         const input = document.getElementById("autocomplete");
+        
+        // Configuration de l'autocomplétion
+        // On demande à récupérer uniquement le nom, l'adresse et le place_id pour économiser des frais
         const options = {
             fields: ["formatted_address", "geometry", "name", "place_id"],
             strictBounds: false,
         };
 
-        // Tentative de chargement de l'autocomplete
-        try {
-            const autocomplete = new google.maps.places.Autocomplete(input, options);
+        const autocomplete = new google.maps.places.Autocomplete(input, options);
 
-            autocomplete.addListener("place_changed", () => {
-                const place = autocomplete.getPlace();
+        // Écouteur d'événement : quand l'utilisateur sélectionne une adresse
+        autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
 
-                if (!place.place_id) {
-                    alert("Veuillez sélectionner une entreprise dans la liste.");
-                    return;
-                }
-                afficherResultat(place);
-            });
-        } catch (e) {
-            console.error("Erreur API:", e);
-            document.getElementById("error-msg").style.display = "block";
-            document.getElementById("error-msg").innerText = "L'API ne s'est pas chargée correctement. Vérifiez la console (F12).";
-        }
+            if (!place.place_id) {
+                alert("Veuillez sélectionner une entreprise dans la liste déroulante.");
+                return;
+            }
+
+            afficherResultat(place);
+        });
     }
 
-    // Fonction globale pour attraper les erreurs d'authentification Google
-    window.gm_authFailure = function() {
-        document.getElementById("error-msg").style.display = "block";
-        document.getElementById("error-msg").innerHTML = "<strong>Erreur :</strong> Cette clé API est bloquée ou restreinte.<br>Google refuse de l'utiliser sur votre site GitHub.";
-    };
-
     function afficherResultat(place) {
-        const placeId = place.place_id;
-        const link = `https://search.google.com/local/writereview?placeid=${placeId}`;
+        // 1. Construire le lien d'avis officiel
+        const link = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
+        
+        // 2. Générer le QR Code (API gratuite qrserver)
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=000000&data=${encodeURIComponent(link)}`;
 
+        // 3. Mettre à jour l'affichage
         document.getElementById("placeName").innerText = place.name;
+        document.getElementById("placeAddress").innerText = place.formatted_address;
         document.getElementById("qrImage").src = qrUrl;
         document.getElementById("reviewLink").href = link;
+        
         document.getElementById("result").style.display = "block";
-        document.getElementById("error-msg").style.display = "none";
     }
 </script>
 
