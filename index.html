@@ -3,21 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur QR Code GMB</title>
-    
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAY5OddBIABOohFpEiAfzUyGD7aKK--8J8&libraries=places" async defer></script>
-
+    <title>Générateur Lien GMB (Nouvelle API)</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
         h2 { color: #333; margin-bottom: 1.5rem; }
         
-        /* Style de la barre de recherche Google */
-        input { 
-            width: 100%; padding: 12px 15px; border: 2px solid #ddd; border-radius: 8px; 
-            font-size: 16px; box-sizing: border-box; transition: 0.3s;
+        /* Style pour l'élément Google */
+        gmp-place-autocomplete-element {
+            width: 100%;
+            margin-bottom: 20px;
         }
-        input:focus { border-color: #4285F4; outline: none; }
+        
+        /* On force un peu le style de l'input Google pour qu'il soit joli */
+        gmp-place-autocomplete-element::part(input) {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
         #result { margin-top: 25px; display: none; border-top: 1px solid #eee; padding-top: 20px; }
         .place-name { font-weight: bold; font-size: 1.2rem; color: #202124; margin-bottom: 5px; }
@@ -34,9 +40,9 @@
 
 <div class="card">
     <h2>📍 Générateur d'Avis</h2>
-    <p style="color:#666; font-size:0.9rem; margin-bottom: 20px;">Recherchez une entreprise pour générer son QR Code</p>
+    <p style="color:#666; font-size:0.9rem; margin-bottom: 20px;">Recherche (Nouvelle API Google)</p>
     
-    <input id="autocomplete" placeholder="Entrez le nom de l'entreprise..." type="text" />
+    <div id="place-autocomplete-container"></div>
 
     <div id="result">
         <div id="placeName" class="place-name"></div>
@@ -51,51 +57,55 @@
 </div>
 
 <script>
-    // Cette fonction se lance quand l'API Google est chargée
-    window.onload = function() {
-        initAutocomplete();
-    };
+    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+        key: "AIzaSyAY5OddBIABOohFpEiAfzUyGD7aKK--8J8", // Votre Clé
+        v: "weekly",
+    });
+</script>
 
-    function initAutocomplete() {
-        const input = document.getElementById("autocomplete");
-        
-        // Configuration de l'autocomplétion
-        // On demande à récupérer uniquement le nom, l'adresse et le place_id pour économiser des frais
-        const options = {
-            fields: ["formatted_address", "geometry", "name", "place_id"],
-            strictBounds: false,
-        };
+<script>
+    async function init() {
+        // 1. On charge la nouvelle librairie "places"
+        const { PlaceAutocompleteElement } = await google.maps.importLibrary("places");
 
-        const autocomplete = new google.maps.places.Autocomplete(input, options);
+        // 2. On crée l'élément de recherche
+        const autocompleteElement = new PlaceAutocompleteElement();
+        autocompleteElement.id = "place-autocomplete-input";
+        autocompleteElement.placeholder = "Rechercher une entreprise...";
 
-        // Écouteur d'événement : quand l'utilisateur sélectionne une adresse
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
+        // 3. On l'ajoute à la page
+        const container = document.getElementById("place-autocomplete-container");
+        container.appendChild(autocompleteElement);
 
-            if (!place.place_id) {
-                alert("Veuillez sélectionner une entreprise dans la liste déroulante.");
-                return;
-            }
+        // 4. On écoute l'événement de sélection (C'est la nouvelle méthode "gmp-placeselect")
+        autocompleteElement.addEventListener("gmp-placeselect", async ({ place }) => {
+            // Pour la nouvelle API, on doit parfois demander explicitement les détails
+            await place.fetchFields({ fields: ["displayName", "formattedAddress", "id"] });
 
             afficherResultat(place);
         });
     }
 
     function afficherResultat(place) {
-        // 1. Construire le lien d'avis officiel
-        const link = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
-        
-        // 2. Générer le QR Code (API gratuite qrserver)
+        // Le Place ID est maintenant directement accessible via place.id
+        const placeId = place.id;
+        const name = place.displayName;
+        const address = place.formattedAddress;
+
+        // Génération du lien
+        const link = `https://search.google.com/local/writereview?placeid=${placeId}`;
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=000000&data=${encodeURIComponent(link)}`;
 
-        // 3. Mettre à jour l'affichage
-        document.getElementById("placeName").innerText = place.name;
-        document.getElementById("placeAddress").innerText = place.formatted_address;
+        // Affichage
+        document.getElementById("placeName").innerText = name;
+        document.getElementById("placeAddress").innerText = address;
         document.getElementById("qrImage").src = qrUrl;
         document.getElementById("reviewLink").href = link;
         
         document.getElementById("result").style.display = "block";
     }
+
+    init();
 </script>
 
 </body>
