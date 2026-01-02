@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur Lien + QR Code GMB</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background-color: #f0f2f5; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .input-group { margin-bottom: 15px; }
+        label { font-weight: bold; font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background-color: #0f9d58; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background-color: #0b8043; }
+        
+        #result { margin-top: 25px; display: none; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+        .links a { display: block; margin: 10px 0; color: #1a73e8; text-decoration: none; font-weight: bold; }
+        .qr-box { margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; display: inline-block; }
+        img { max-width: 150px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📍 Générateur GMB & QR</h2>
+    
+    <div class="input-group">
+        <label>Votre Clé API Google Places (New)</label>
+        <input type="password" id="apiKey" placeholder="Collez votre clé API ici">
+        <small style="color:#777; font-size: 11px;">Nécessaire pour trouver le Place ID. Gratuit jusqu'à 200$/mois.</small>
+    </div>
+
+    <div class="input-group">
+        <label>Nom de l'entreprise</label>
+        <input type="text" id="companyName" placeholder="Ex: Boulangerie Paul">
+    </div>
+
+    <button onclick="genererTout()">Générer le QR Code</button>
+
+    <div id="result">
+        <h3 id="resName"></h3>
+        <p id="resAddress" style="color:#666; font-size:14px;"></p>
+        
+        <div class="qr-box">
+            <img id="qrImage" src="" alt="QR Code">
+            <br>
+            <small>Scannez pour laisser un avis</small>
+        </div>
+
+        <div class="links">
+            <a id="reviewLink" href="#" target="_blank">🔗 Tester le lien d'avis</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function genererTout() {
+        const apiKey = document.getElementById('apiKey').value;
+        const input = document.getElementById('companyName').value;
+        const resultDiv = document.getElementById('result');
+        
+        if (!apiKey || !input) { alert("Veuillez remplir tous les champs"); return; }
+
+        // 1. Appel API Google pour trouver le Place ID
+        const url = "https://places.googleapis.com/v1/places:searchText";
+        
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Goog-Api-Key": apiKey,
+                    "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress"
+                },
+                body: JSON.stringify({ textQuery: input })
+            });
+
+            const data = await response.json();
+
+            if (data.places && data.places.length > 0) {
+                const place = data.places[0];
+                const placeId = place.id;
+                
+                // 2. Construction du lien d'avis Google (Format officiel)
+                // Ce lien ouvre directement la fenêtre pour mettre 5 étoiles
+                const link = `https://search.google.com/local/writereview?placeid=${placeId}`;
+                
+                // 3. Génération du QR Code via une API gratuite (goqr.me ou qrserver)
+                // On encode l'URL pour qu'elle passe bien dans la requête
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+
+                // 4. Affichage
+                document.getElementById('resName').innerText = place.displayName.text;
+                document.getElementById('resAddress').innerText = place.formattedAddress;
+                document.getElementById('reviewLink').href = link;
+                document.getElementById('qrImage').src = qrUrl;
+                
+                resultDiv.style.display = "block";
+            } else {
+                alert("Aucune entreprise trouvée.");
+            }
+
+        } catch (error) {
+            alert("Erreur: " + error);
+            console.error(error);
+        }
+    }
+</script>
+
+</body>
+</html>
