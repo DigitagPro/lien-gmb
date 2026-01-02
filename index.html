@@ -3,109 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur Lien GMB (Nouvelle API)</title>
+    <title>Générateur QR Simple</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
-        h2 { color: #333; margin-bottom: 1.5rem; }
-        
-        /* Style pour l'élément Google */
-        gmp-place-autocomplete-element {
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        
-        /* On force un peu le style de l'input Google pour qu'il soit joli */
-        gmp-place-autocomplete-element::part(input) {
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        #result { margin-top: 25px; display: none; border-top: 1px solid #eee; padding-top: 20px; }
-        .place-name { font-weight: bold; font-size: 1.2rem; color: #202124; margin-bottom: 5px; }
-        .place-address { color: #5f6368; font-size: 0.9rem; margin-bottom: 20px; }
-        
-        .qr-container { background: #f8f9fa; padding: 15px; border-radius: 10px; display: inline-block; }
-        img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-        
-        .btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: #4285F4; color: white; text-decoration: none; border-radius: 50px; font-weight: 500; font-size: 0.9rem; }
-        .btn:hover { background-color: #3367d6; }
+        body { font-family: sans-serif; background-color: #f0f2f5; padding: 20px; text-align: center; }
+        .card { background: white; max-width: 400px; margin: 0 auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { background-color: #4285F4; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
+        button:hover { background-color: #357ae8; }
+        #result { margin-top: 20px; display: none; }
+        .hint { font-size: 12px; color: #666; margin-bottom: 20px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>📍 Générateur d'Avis</h2>
-    <p style="color:#666; font-size:0.9rem; margin-bottom: 20px;">Recherche (Nouvelle API Google)</p>
+    <h2>⚡ Générateur Rapide</h2>
+    <p>Sans API - Gratuit à vie</p>
     
-    <div id="place-autocomplete-container"></div>
+    <input type="text" id="companyInput" placeholder="Nom de l'entreprise (ex: Pizzeria Luigi)">
+    <input type="text" id="cityInput" placeholder="Ville (ex: Lyon)">
+    
+    <span class="hint">Astuce : Soyez précis pour tomber sur le bon résultat.</span>
+
+    <button onclick="generer()">Créer le QR Code</button>
 
     <div id="result">
-        <div id="placeName" class="place-name"></div>
-        <div id="placeAddress" class="place-address"></div>
-        
-        <div class="qr-container">
-            <img id="qrImage" src="" alt="QR Code" width="200">
-        </div>
-        <br>
-        <a id="reviewLink" class="btn" href="#" target="_blank">Tester le lien</a>
+        <img id="qrImage" src="" alt="QR Code" width="200">
+        <br><br>
+        <a id="linkTest" href="#" target="_blank" style="color:#4285F4; text-decoration:none;">Testez le lien ici</a>
     </div>
 </div>
 
 <script>
-    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
-        key: "AIzaSyAY5OddBIABOohFpEiAfzUyGD7aKK--8J8", // Votre Clé
-        v: "weekly",
-    });
-</script>
-
-<script>
-    async function init() {
-        // 1. On charge la nouvelle librairie "places"
-        const { PlaceAutocompleteElement } = await google.maps.importLibrary("places");
-
-        // 2. On crée l'élément de recherche
-        const autocompleteElement = new PlaceAutocompleteElement();
-        autocompleteElement.id = "place-autocomplete-input";
-        autocompleteElement.placeholder = "Rechercher une entreprise...";
-
-        // 3. On l'ajoute à la page
-        const container = document.getElementById("place-autocomplete-container");
-        container.appendChild(autocompleteElement);
-
-        // 4. On écoute l'événement de sélection (C'est la nouvelle méthode "gmp-placeselect")
-        autocompleteElement.addEventListener("gmp-placeselect", async ({ place }) => {
-            // Pour la nouvelle API, on doit parfois demander explicitement les détails
-            await place.fetchFields({ fields: ["displayName", "formattedAddress", "id"] });
-
-            afficherResultat(place);
-        });
-    }
-
-    function afficherResultat(place) {
-        // Le Place ID est maintenant directement accessible via place.id
-        const placeId = place.id;
-        const name = place.displayName;
-        const address = place.formattedAddress;
-
-        // Génération du lien
-        const link = `https://search.google.com/local/writereview?placeid=${placeId}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=000000&data=${encodeURIComponent(link)}`;
-
-        // Affichage
-        document.getElementById("placeName").innerText = name;
-        document.getElementById("placeAddress").innerText = address;
-        document.getElementById("qrImage").src = qrUrl;
-        document.getElementById("reviewLink").href = link;
+    function generer() {
+        const nom = document.getElementById('companyInput').value;
+        const ville = document.getElementById('cityInput').value;
         
-        document.getElementById("result").style.display = "block";
-    }
+        if(!nom) { alert("Mettez au moins un nom !"); return; }
 
-    init();
+        // On crée une recherche Google intelligente
+        // Le terme "Write a review" force souvent Google à montrer le bouton d'avis
+        const query = `${nom} ${ville} avis`;
+        
+        // On encode pour que les espaces deviennent des %20
+        const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+        // Génération du QR Code
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=000000&data=${encodeURIComponent(googleUrl)}`;
+
+        document.getElementById('qrImage').src = qrUrl;
+        document.getElementById('linkTest').href = googleUrl;
+        document.getElementById('result').style.display = 'block';
+    }
 </script>
 
 </body>
