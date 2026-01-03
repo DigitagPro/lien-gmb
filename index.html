@@ -5,100 +5,146 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Générateur Lien GMB</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; text-align: center; }
-        input { padding: 10px; width: 80%; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background-color: #ff4b4b; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
-        button:hover { background-color: #d43f3f; }
-        #result { margin-top: 20px; padding: 15px; border: 1px solid #eee; display: none; background-color: #f9f9f9; border-radius: 8px; }
-        .link-box { background: #eee; padding: 10px; word-break: break-all; font-family: monospace; margin: 10px 0; user-select: all; }
-        .loading { display: none; color: #666; }
-        .error { color: red; display: none; }
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; text-align: center; background-color: #f4f4f9; }
+        h2 { color: #333; }
+        input { padding: 12px; width: 80%; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+        button#searchBtn { background-color: #ff4b4b; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 90%; font-weight: bold; margin-top: 10px; }
+        button#searchBtn:hover { background-color: #d43f3f; }
+        
+        /* Style de la liste des résultats */
+        #choices { margin-top: 20px; text-align: left; }
+        .choice-card { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .choice-card:hover { border-color: #ff4b4b; background-color: #fff5f5; }
+        .choice-title { font-weight: bold; font-size: 16px; color: #333; }
+        .choice-address { font-size: 13px; color: #666; margin-top: 4px; }
+        .choice-rating { font-size: 12px; color: #f59e0b; margin-top: 4px; }
+
+        /* Résultat final */
+        #finalResult { margin-top: 20px; padding: 20px; border: 2px solid #4CAF50; display: none; background-color: #e8f5e9; border-radius: 12px; }
+        .link-box { background: white; padding: 10px; word-break: break-all; font-family: monospace; margin: 10px 0; border: 1px dashed #4CAF50; border-radius: 4px; }
+        .loading { display: none; color: #666; margin-top: 15px; }
+        .error { color: red; display: none; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <h2>📍 Lien Avis Google (Version HTML)</h2>
-    <p>Outil interne pour les commerciaux</p>
+    <h2>📍 Générateur d'Avis</h2>
+    <p>Tapez le début du nom, choisissez dans la liste.</p>
 
-    <input type="text" id="nom" placeholder="Nom de l'entreprise (ex: Pizzeria Napoli)">
+    <input type="text" id="nom" placeholder="Nom (ex: Garage Dupont)">
     <input type="text" id="ville" placeholder="Ville (ex: Lyon)">
     
-    <button onclick="trouverLien()">Obtenir le lien</button>
-    <p id="loading" class="loading">Recherche en cours... (ça peut prendre 3-4 sec)</p>
+    <button id="searchBtn" onclick="lancerRecherche()">🔍 Rechercher</button>
+    
+    <p id="loading" class="loading">Recherche en cours...</p>
     <p id="errorMessage" class="error"></p>
 
-    <div id="result">
-        <h3 id="nomTrouve"></h3>
-        <p>Copie ce lien pour le client :</p>
+    <div id="choices"></div>
+
+    <div id="finalResult">
+        <h3 id="nomFinal"></h3>
+        <p>👇 Lien à envoyer au client :</p>
         <div class="link-box" id="lienFinal"></div>
-        <a id="boutonTest" href="#" target="_blank" style="display:block; margin-top:10px; color:blue; font-weight:bold;">👉 Cliquer pour tester le lien</a>
+        <a id="boutonTest" href="#" target="_blank" style="display:block; margin-top:15px; background:#4CAF50; color:white; padding:10px; text-decoration:none; border-radius:5px;">👉 Tester le lien</a>
+        <button onclick="location.reload()" style="margin-top:10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline;">Faire une autre recherche</button>
     </div>
 
     <script>
-        async function trouverLien() {
+        async function lancerRecherche() {
             // TA CLÉ
             const API_KEY = "07d69c13788621a9c084603f0f6f019c48a0061dcc7c050138d208a6bdf227c1";
             
             const nom = document.getElementById('nom').value;
             const ville = document.getElementById('ville').value;
-            const resultDiv = document.getElementById('result');
+            const choicesDiv = document.getElementById('choices');
+            const resultDiv = document.getElementById('finalResult');
             const loading = document.getElementById('loading');
             const errorMsg = document.getElementById('errorMessage');
 
             if (!nom) { alert("Mets au moins un nom !"); return; }
 
-            // Reset de l'affichage
+            // Reset
             loading.style.display = "block";
+            choicesDiv.innerHTML = ""; // On vide la liste
             resultDiv.style.display = "none";
             errorMsg.style.display = "none";
 
-            // --- LA CORRECTION EST ICI ---
-            // 1. On prépare l'URL de SerpApi
-            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(nom + " " + ville)}&api_key=${API_KEY}&type=search`;
-            
-            // 2. On passe par un PROXY (corsproxy.io) pour éviter le blocage du navigateur
+            // URL SerpApi via Proxy
+            const query = encodeURIComponent(nom + " " + ville);
+            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${API_KEY}&type=search`;
             const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
 
             try {
                 const response = await fetch(proxyUrl);
                 const data = await response.json();
 
-                // Vérification si SerpApi renvoie une erreur (clé invalide ou quota dépassé)
-                if (data.error) {
-                    throw new Error("Erreur SerpApi : " + data.error);
+                if (data.error) throw new Error(data.error);
+
+                // On rassemble tous les résultats possibles
+                let resultats = [];
+                
+                // Cas 1: Résultats multiples (Liste)
+                if (data.local_results && data.local_results.length > 0) {
+                    resultats = data.local_results;
+                } 
+                // Cas 2: Résultat unique (Direct)
+                else if (data.place_results) {
+                    resultats.push(data.place_results);
                 }
 
-                let placeId = null;
-                let titre = "";
+                loading.style.display = "none";
 
-                if (data.place_results) {
-                    placeId = data.place_results.place_id;
-                    titre = data.place_results.title;
-                } else if (data.local_results && data.local_results.length > 0) {
-                    placeId = data.local_results[0].place_id;
-                    titre = data.local_results[0].title;
-                }
-
-                if (placeId) {
-                    const lien = `https://search.google.com/local/writereview?placeid=${placeId}`;
-                    
-                    document.getElementById('nomTrouve').innerText = "✅ " + titre;
-                    document.getElementById('lienFinal').innerText = lien;
-                    document.getElementById('boutonTest').href = lien;
-                    
-                    resultDiv.style.display = "block";
-                } else {
-                    errorMsg.innerText = "Entreprise introuvable ❌ Vérifie l'orthographe.";
+                if (resultats.length === 0) {
+                    errorMsg.innerText = "Aucune entreprise trouvée 😕. Essaie un autre nom.";
                     errorMsg.style.display = "block";
+                    return;
+                }
+
+                // Affichage des choix
+                if (resultats.length === 1) {
+                    // S'il n'y en a qu'un, on affiche direct le lien
+                    afficherLeLien(resultats[0]);
+                } else {
+                    // S'il y en a plusieurs, on crée des boutons
+                    choicesDiv.innerHTML = "<p style='color:#666; font-size:14px;'>Plusieurs résultats trouvés, clique sur le bon :</p>";
+                    
+                    resultats.forEach(place => {
+                        const card = document.createElement('div');
+                        card.className = 'choice-card';
+                        card.onclick = function() { afficherLeLien(place); };
+                        
+                        const titre = place.title || place.name;
+                        const adresse = place.address || place.formatted_address || "Adresse non dispo";
+                        const note = place.rating ? `⭐ ${place.rating}/5 (${place.reviews} avis)` : "";
+
+                        card.innerHTML = `
+                            <div class="choice-title">${titre}</div>
+                            <div class="choice-address">${adresse}</div>
+                            <div class="choice-rating">${note}</div>
+                        `;
+                        choicesDiv.appendChild(card);
+                    });
                 }
 
             } catch (error) {
                 console.error(error);
-                errorMsg.innerText = "Erreur : " + error.message;
-                errorMsg.style.display = "block";
-            } finally {
                 loading.style.display = "none";
+                errorMsg.innerText = "Erreur technique : " + error.message;
+                errorMsg.style.display = "block";
             }
+        }
+
+        function afficherLeLien(place) {
+            // Cache la liste et affiche le résultat final
+            document.getElementById('choices').innerHTML = "";
+            
+            const placeId = place.place_id;
+            const lien = `https://search.google.com/local/writereview?placeid=${placeId}`;
+            
+            document.getElementById('nomFinal').innerText = "✅ " + (place.title || place.name);
+            document.getElementById('lienFinal').innerText = lien;
+            document.getElementById('boutonTest').href = lien;
+            document.getElementById('finalResult').style.display = "block";
         }
     </script>
 
