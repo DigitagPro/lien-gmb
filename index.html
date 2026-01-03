@@ -10,58 +10,67 @@
         button { background-color: #ff4b4b; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
         button:hover { background-color: #d43f3f; }
         #result { margin-top: 20px; padding: 15px; border: 1px solid #eee; display: none; background-color: #f9f9f9; border-radius: 8px; }
-        .link-box { background: #eee; padding: 10px; word-break: break-all; font-family: monospace; margin: 10px 0; }
+        .link-box { background: #eee; padding: 10px; word-break: break-all; font-family: monospace; margin: 10px 0; user-select: all; }
         .loading { display: none; color: #666; }
+        .error { color: red; display: none; }
     </style>
 </head>
 <body>
 
-    <h2>📍 Générateur Lien Avis</h2>
+    <h2>📍 Lien Avis Google (Version HTML)</h2>
     <p>Outil interne pour les commerciaux</p>
 
     <input type="text" id="nom" placeholder="Nom de l'entreprise (ex: Pizzeria Napoli)">
     <input type="text" id="ville" placeholder="Ville (ex: Lyon)">
     
     <button onclick="trouverLien()">Obtenir le lien</button>
-    <p id="loading" class="loading">Recherche en cours...</p>
+    <p id="loading" class="loading">Recherche en cours... (ça peut prendre 3-4 sec)</p>
+    <p id="errorMessage" class="error"></p>
 
     <div id="result">
         <h3 id="nomTrouve"></h3>
         <p>Copie ce lien pour le client :</p>
         <div class="link-box" id="lienFinal"></div>
-        <a id="boutonTest" href="#" target="_blank" style="display:block; margin-top:10px; color:blue;">👉 Tester le lien</a>
+        <a id="boutonTest" href="#" target="_blank" style="display:block; margin-top:10px; color:blue; font-weight:bold;">👉 Cliquer pour tester le lien</a>
     </div>
 
     <script>
         async function trouverLien() {
-            // TA CLÉ API EST ICI (Visible par tous ceux qui ont le lien)
+            // TA CLÉ
             const API_KEY = "07d69c13788621a9c084603f0f6f019c48a0061dcc7c050138d208a6bdf227c1";
             
             const nom = document.getElementById('nom').value;
             const ville = document.getElementById('ville').value;
             const resultDiv = document.getElementById('result');
             const loading = document.getElementById('loading');
+            const errorMsg = document.getElementById('errorMessage');
 
             if (!nom) { alert("Mets au moins un nom !"); return; }
 
-            // Afficher le chargement
+            // Reset de l'affichage
             loading.style.display = "block";
             resultDiv.style.display = "none";
+            errorMsg.style.display = "none";
 
-            // On utilise un proxy 'corsproxy.io' car SerpApi bloque parfois les appels directs depuis un navigateur pour sécurité
-            const query = encodeURIComponent(nom + " " + ville);
-            const url = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${API_KEY}&type=search`;
+            // --- LA CORRECTION EST ICI ---
+            // 1. On prépare l'URL de SerpApi
+            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(nom + " " + ville)}&api_key=${API_KEY}&type=search`;
+            
+            // 2. On passe par un PROXY (corsproxy.io) pour éviter le blocage du navigateur
+            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
 
             try {
-                // Note: Pour GitHub Pages, on appelle directement SerpApi. 
-                // Si ça bloque, c'est une sécurité navigateur (CORS).
-                const response = await fetch(url);
+                const response = await fetch(proxyUrl);
                 const data = await response.json();
+
+                // Vérification si SerpApi renvoie une erreur (clé invalide ou quota dépassé)
+                if (data.error) {
+                    throw new Error("Erreur SerpApi : " + data.error);
+                }
 
                 let placeId = null;
                 let titre = "";
 
-                // Logique de recherche (comme en Python)
                 if (data.place_results) {
                     placeId = data.place_results.place_id;
                     titre = data.place_results.title;
@@ -79,12 +88,14 @@
                     
                     resultDiv.style.display = "block";
                 } else {
-                    alert("Entreprise introuvable ❌");
+                    errorMsg.innerText = "Entreprise introuvable ❌ Vérifie l'orthographe.";
+                    errorMsg.style.display = "block";
                 }
 
             } catch (error) {
                 console.error(error);
-                alert("Erreur de connexion (Vérifie ta clé ou ta connexion)");
+                errorMsg.innerText = "Erreur : " + error.message;
+                errorMsg.style.display = "block";
             } finally {
                 loading.style.display = "none";
             }
