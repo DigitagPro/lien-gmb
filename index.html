@@ -2,74 +2,121 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur Lien GMB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NFC Link Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; text-align: center; background-color: #f4f4f9; }
-        h2 { color: #333; }
-        input { padding: 12px; width: 80%; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
-        button#searchBtn { background-color: #ff4b4b; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 90%; font-weight: bold; margin-top: 10px; }
-        button#searchBtn:hover { background-color: #d43f3f; }
+        /* Petite animation pour le chargement */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Style de la liste des résultats */
-        #choices { margin-top: 20px; text-align: left; }
-        .choice-card { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .choice-card:hover { border-color: #ff4b4b; background-color: #fff5f5; }
-        .choice-title { font-weight: bold; font-size: 16px; color: #333; }
-        .choice-address { font-size: 13px; color: #666; margin-top: 4px; }
-        .choice-rating { font-size: 12px; color: #f59e0b; margin-top: 4px; }
-
-        /* Résultat final */
-        #finalResult { margin-top: 20px; padding: 20px; border: 2px solid #4CAF50; display: none; background-color: #e8f5e9; border-radius: 12px; }
-        .link-box { background: white; padding: 10px; word-break: break-all; font-family: monospace; margin: 10px 0; border: 1px dashed #4CAF50; border-radius: 4px; }
-        .loading { display: none; color: #666; margin-top: 15px; }
-        .error { color: red; display: none; margin-top: 15px; }
+        /* Pour éviter que ça zoom sur mobile quand on clique sur input */
+        input { font-size: 16px !important; }
     </style>
 </head>
-<body>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-start pt-6 px-4 font-sans text-slate-800">
 
-    <h2>📍 Générateur d'Avis</h2>
-    <p>Tapez le début du nom, choisissez dans la liste.</p>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6 text-center">
+        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+            <i class="fa-solid fa-wifi"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">Générateur NFC</h1>
+        <p class="text-slate-500 text-sm mt-1">Trouvez le lien Avis Google pour vos clients.</p>
+    </div>
 
-    <input type="text" id="nom" placeholder="Nom (ex: Garage Dupont)">
-    <input type="text" id="ville" placeholder="Ville (ex: Lyon)">
-    
-    <button id="searchBtn" onclick="lancerRecherche()">🔍 Rechercher</button>
-    
-    <p id="loading" class="loading">Recherche en cours...</p>
-    <p id="errorMessage" class="error"></p>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 transition-all" id="searchBox">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Entreprise</label>
+                <div class="relative">
+                    <i class="fa-solid fa-store absolute left-4 top-3.5 text-slate-400"></i>
+                    <input type="text" id="nom" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ex: Restaurant Le Sud">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Ville</label>
+                <div class="relative">
+                    <i class="fa-solid fa-location-dot absolute left-4 top-3.5 text-slate-400"></i>
+                    <input type="text" id="ville" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ex: Marseille">
+                </div>
+            </div>
 
-    <div id="choices"></div>
+            <button onclick="lancerRecherche()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
+                <i class="fa-solid fa-magnifying-glass"></i> Rechercher
+            </button>
+        </div>
 
-    <div id="finalResult">
-        <h3 id="nomFinal"></h3>
-        <p>👇 Lien à envoyer au client :</p>
-        <div class="link-box" id="lienFinal"></div>
-        <a id="boutonTest" href="#" target="_blank" style="display:block; margin-top:15px; background:#4CAF50; color:white; padding:10px; text-decoration:none; border-radius:5px;">👉 Tester le lien</a>
-        <button onclick="location.reload()" style="margin-top:10px; background:none; border:none; color:#666; cursor:pointer; text-decoration:underline;">Faire une autre recherche</button>
+        <div id="loading" class="hidden mt-6 text-center">
+            <div class="spinner mb-2"></div>
+            <p class="text-sm text-slate-500">Interrogation de Google...</p>
+        </div>
+
+        <div id="errorMessage" class="hidden mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="errorText">Erreur</span>
+        </div>
+    </div>
+
+    <div id="choices" class="w-full max-w-md mt-4 space-y-3"></div>
+
+    <div id="finalResult" class="hidden w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-4 border-2 border-green-500 relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">NFC READY</div>
+        
+        <h3 class="text-lg font-bold text-slate-800 mb-1" id="nomFinal">Nom Entreprise</h3>
+        <p class="text-xs text-slate-400 mb-6" id="adresseFinal">Adresse</p>
+
+        <input type="text" id="inputLienCache" class="hidden">
+
+        <button onclick="copierLien()" id="btnCopy" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3">
+            <i class="fa-regular fa-copy text-lg"></i>
+            <span id="btnCopyText">COPIER LE LIEN</span>
+        </button>
+
+        <a id="boutonTest" href="#" target="_blank" class="block w-full text-center text-blue-600 font-medium text-sm py-2 hover:bg-blue-50 rounded-lg transition-colors">
+            Tester le lien <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i>
+        </a>
+        
+        <button onclick="resetApp()" class="block w-full text-center text-slate-400 text-xs mt-4 hover:text-slate-600">
+            Faire une nouvelle recherche
+        </button>
     </div>
 
     <script>
+        // TA CLÉ API
+        const API_KEY = "07d69c13788621a9c084603f0f6f019c48a0061dcc7c050138d208a6bdf227c1";
+
         async function lancerRecherche() {
-            // TA CLÉ
-            const API_KEY = "07d69c13788621a9c084603f0f6f019c48a0061dcc7c050138d208a6bdf227c1";
-            
             const nom = document.getElementById('nom').value;
             const ville = document.getElementById('ville').value;
+            
+            // UI Elements
+            const loading = document.getElementById('loading');
             const choicesDiv = document.getElementById('choices');
             const resultDiv = document.getElementById('finalResult');
-            const loading = document.getElementById('loading');
+            const searchBox = document.getElementById('searchBox');
             const errorMsg = document.getElementById('errorMessage');
 
-            if (!nom) { alert("Mets au moins un nom !"); return; }
+            if (!nom) return;
 
-            // Reset
-            loading.style.display = "block";
-            choicesDiv.innerHTML = ""; // On vide la liste
-            resultDiv.style.display = "none";
-            errorMsg.style.display = "none";
+            // Reset UI
+            loading.classList.remove('hidden');
+            choicesDiv.innerHTML = "";
+            resultDiv.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+            searchBox.classList.remove('opacity-50');
 
-            // URL SerpApi via Proxy
+            // API Call via Proxy
             const query = encodeURIComponent(nom + " " + ville);
             const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${API_KEY}&type=search`;
             const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
@@ -78,75 +125,94 @@
                 const response = await fetch(proxyUrl);
                 const data = await response.json();
 
+                loading.classList.add('hidden');
+
                 if (data.error) throw new Error(data.error);
 
-                // On rassemble tous les résultats possibles
                 let resultats = [];
-                
-                // Cas 1: Résultats multiples (Liste)
-                if (data.local_results && data.local_results.length > 0) {
-                    resultats = data.local_results;
-                } 
-                // Cas 2: Résultat unique (Direct)
-                else if (data.place_results) {
-                    resultats.push(data.place_results);
-                }
-
-                loading.style.display = "none";
+                if (data.local_results && data.local_results.length > 0) resultats = data.local_results;
+                else if (data.place_results) resultats.push(data.place_results);
 
                 if (resultats.length === 0) {
-                    errorMsg.innerText = "Aucune entreprise trouvée 😕. Essaie un autre nom.";
-                    errorMsg.style.display = "block";
-                    return;
+                    throw new Error("Aucune entreprise trouvée.");
                 }
 
-                // Affichage des choix
+                // Affichage des résultats
                 if (resultats.length === 1) {
-                    // S'il n'y en a qu'un, on affiche direct le lien
-                    afficherLeLien(resultats[0]);
+                    afficherResultatFinal(resultats[0]);
                 } else {
-                    // S'il y en a plusieurs, on crée des boutons
-                    choicesDiv.innerHTML = "<p style='color:#666; font-size:14px;'>Plusieurs résultats trouvés, clique sur le bon :</p>";
+                    // Plusieurs choix
+                    searchBox.classList.add('opacity-50'); // On grise la recherche
                     
                     resultats.forEach(place => {
-                        const card = document.createElement('div');
-                        card.className = 'choice-card';
-                        card.onclick = function() { afficherLeLien(place); };
+                        const div = document.createElement('div');
+                        div.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer hover:border-blue-500 transition-colors";
+                        div.onclick = () => afficherResultatFinal(place);
                         
-                        const titre = place.title || place.name;
-                        const adresse = place.address || place.formatted_address || "Adresse non dispo";
-                        const note = place.rating ? `⭐ ${place.rating}/5 (${place.reviews} avis)` : "";
-
-                        card.innerHTML = `
-                            <div class="choice-title">${titre}</div>
-                            <div class="choice-address">${adresse}</div>
-                            <div class="choice-rating">${note}</div>
+                        div.innerHTML = `
+                            <div>
+                                <div class="font-bold text-slate-700">${place.title || place.name}</div>
+                                <div class="text-xs text-slate-500">${place.address || place.formatted_address || ""}</div>
+                            </div>
+                            <div class="text-blue-500"><i class="fa-solid fa-chevron-right"></i></div>
                         `;
-                        choicesDiv.appendChild(card);
+                        choicesDiv.appendChild(div);
                     });
                 }
 
             } catch (error) {
-                console.error(error);
-                loading.style.display = "none";
-                errorMsg.innerText = "Erreur technique : " + error.message;
-                errorMsg.style.display = "block";
+                loading.classList.add('hidden');
+                document.getElementById('errorText').innerText = error.message || "Erreur inconnue";
+                errorMsg.classList.remove('hidden');
             }
         }
 
-        function afficherLeLien(place) {
-            // Cache la liste et affiche le résultat final
-            document.getElementById('choices').innerHTML = "";
-            
+        function afficherResultatFinal(place) {
+            document.getElementById('choices').innerHTML = ""; // Clear list
+            document.getElementById('searchBox').classList.add('hidden'); // Hide search
+
             const placeId = place.place_id;
             const lien = `https://search.google.com/local/writereview?placeid=${placeId}`;
-            
-            document.getElementById('nomFinal').innerText = "✅ " + (place.title || place.name);
-            document.getElementById('lienFinal').innerText = lien;
+
+            document.getElementById('nomFinal').innerText = place.title || place.name;
+            document.getElementById('adresseFinal').innerText = place.address || place.formatted_address;
+            document.getElementById('inputLienCache').value = lien; // Pour copier
             document.getElementById('boutonTest').href = lien;
-            document.getElementById('finalResult').style.display = "block";
+
+            // Reset bouton copy
+            const btn = document.getElementById('btnCopy');
+            btn.className = "w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3";
+            document.getElementById('btnCopyText').innerText = "COPIER LE LIEN";
+            btn.querySelector('i').className = "fa-regular fa-copy text-lg";
+
+            document.getElementById('finalResult').classList.remove('hidden');
+        }
+
+        function copierLien() {
+            const lien = document.getElementById('inputLienCache').value;
+            
+            // Copie dans le presse-papier
+            navigator.clipboard.writeText(lien).then(() => {
+                // Feedback Visuel
+                const btn = document.getElementById('btnCopy');
+                btn.className = "w-full bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all mb-3 scale-105";
+                document.getElementById('btnCopyText').innerText = "LIEN COPIÉ !";
+                btn.querySelector('i').className = "fa-solid fa-check text-lg";
+                
+                // Petit effet de vibration sur mobile si supporté
+                if (navigator.vibrate) navigator.vibrate(50);
+            }).catch(err => {
+                alert("Erreur de copie : " + err);
+            });
+        }
+
+        function resetApp() {
+            document.getElementById('finalResult').classList.add('hidden');
+            document.getElementById('searchBox').classList.remove('hidden');
+            document.getElementById('searchBox').classList.remove('opacity-50');
+            document.getElementById('nom').value = "";
+            document.getElementById('ville').value = "";
         }
     </script>
-
 </body>
 </html>
