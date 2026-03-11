@@ -3,63 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Générateur lien gmb</title>
+    <title>Digitag - Générateur NFC</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <style>
-        /* Petite animation pour le chargement */
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Pour éviter que ça zoom sur mobile quand on clique sur input */
         input { font-size: 16px !important; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-start pt-6 px-4 font-sans text-slate-800">
 
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6 text-center">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6 text-center border-b-4 border-blue-600">
         <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
             <i class="fa-solid fa-wifi"></i>
         </div>
-        <h1 class="text-2xl font-bold text-slate-800">Générateur lien gmb</h1>
-        <p class="text-slate-500 text-sm mt-1">Trouvez le lien Avis Google pour vos clients.</p>
+        <h1 class="text-2xl font-bold text-slate-800">Générateur lien GMB</h1>
+        <p class="text-slate-500 text-sm mt-1">Outil pour plaques NFC.</p>
     </div>
 
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 transition-all" id="searchBox">
         <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Entreprise</label>
-                <div class="relative">
-                    <i class="fa-solid fa-store absolute left-4 top-3.5 text-slate-400"></i>
-                    <input type="text" id="nom" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ex: Restaurant Le Sud">
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Ville</label>
-                <div class="relative">
-                    <i class="fa-solid fa-location-dot absolute left-4 top-3.5 text-slate-400"></i>
-                    <input type="text" id="ville" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ex: Marseille">
-                </div>
-            </div>
-
-            <button onclick="lancerRecherche()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
-                <i class="fa-solid fa-magnifying-glass"></i> Rechercher
+            <input type="text" id="nom" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4" placeholder="Nom de l'entreprise">
+            <input type="text" id="ville" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4" placeholder="Ville">
+            <button onclick="lancerRecherche()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
+                <i class="fa-solid fa-magnifying-glass"></i> RECHERCHER
             </button>
         </div>
 
         <div id="loading" class="hidden mt-6 text-center">
             <div class="spinner mb-2"></div>
-            <p class="text-sm text-slate-500">Interrogation de Google...</p>
+            <p class="text-sm text-slate-500 italic">Connexion sécurisée...</p>
         </div>
 
         <div id="errorMessage" class="hidden mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
@@ -71,147 +45,92 @@
     <div id="choices" class="w-full max-w-md mt-4 space-y-3"></div>
 
     <div id="finalResult" class="hidden w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-4 border-2 border-green-500 relative overflow-hidden">
-        <div class="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">NFC READY</div>
-        
+        <div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase">Prêt pour NFC</div>
         <h3 class="text-lg font-bold text-slate-800 mb-1" id="nomFinal">Nom Entreprise</h3>
         <p class="text-xs text-slate-400 mb-6" id="adresseFinal">Adresse</p>
-
-        <input type="text" id="inputLienCache" class="hidden">
-
-        <button onclick="copierLien()" id="btnCopy" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3">
+        <button onclick="copierLien()" id="btnCopy" class="w-full bg-slate-900 text-white font-bold py-5 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3">
             <i class="fa-regular fa-copy text-lg"></i>
             <span id="btnCopyText">COPIER LE LIEN</span>
         </button>
-
-        <a id="boutonTest" href="#" target="_blank" class="block w-full text-center text-blue-600 font-medium text-sm py-2 hover:bg-blue-50 rounded-lg transition-colors">
-            Tester le lien <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i>
-        </a>
-        
-        <button onclick="resetApp()" class="block w-full text-center text-slate-400 text-xs mt-4 hover:text-slate-600">
-            Faire une nouvelle recherche
-        </button>
+        <button onclick="location.reload()" class="block w-full text-center text-slate-400 text-xs mt-4 underline">Nouvelle recherche</button>
     </div>
 
     <script>
-        // TA CLÉ API
         const API_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
 
         async function lancerRecherche() {
             const nom = document.getElementById('nom').value;
             const ville = document.getElementById('ville').value;
-            
-            // UI Elements
             const loading = document.getElementById('loading');
             const choicesDiv = document.getElementById('choices');
             const resultDiv = document.getElementById('finalResult');
-            const searchBox = document.getElementById('searchBox');
             const errorMsg = document.getElementById('errorMessage');
 
             if (!nom) return;
 
-            // Reset UI
             loading.classList.remove('hidden');
             choicesDiv.innerHTML = "";
             resultDiv.classList.add('hidden');
             errorMsg.classList.add('hidden');
-            searchBox.classList.remove('opacity-50');
 
-            // API Call via Proxy
-            const query = encodeURIComponent(nom + " " + ville);
-            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${API_KEY}&type=search`;
-            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+            // --- NOUVEAU PROXY GRATUIT (AllOrigins) ---
+            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(nom + " " + ville)}&api_key=${API_KEY}&type=search`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
             try {
                 const response = await fetch(proxyUrl);
-                const data = await response.json();
+                const result = await response.json();
+                
+                // On décode le contenu renvoyé par le proxy
+                const data = JSON.parse(result.contents);
 
                 loading.classList.add('hidden');
 
                 if (data.error) throw new Error(data.error);
 
-                let resultats = [];
-                if (data.local_results && data.local_results.length > 0) resultats = data.local_results;
-                else if (data.place_results) resultats.push(data.place_results);
+                let resultats = data.local_results || (data.place_results ? [data.place_results] : []);
 
-                if (resultats.length === 0) {
-                    throw new Error("Aucune entreprise trouvée.");
-                }
+                if (resultats.length === 0) throw new Error("Aucun établissement trouvé.");
 
-                // Affichage des résultats
                 if (resultats.length === 1) {
-                    afficherResultatFinal(resultats[0]);
+                    afficherResultatFinal(resultats);
                 } else {
-                    // Plusieurs choix
-                    searchBox.classList.add('opacity-50'); // On grise la recherche
-                    
                     resultats.forEach(place => {
                         const div = document.createElement('div');
-                        div.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer hover:border-blue-500 transition-colors";
+                        div.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer active:bg-blue-50";
                         div.onclick = () => afficherResultatFinal(place);
-                        
-                        div.innerHTML = `
-                            <div>
-                                <div class="font-bold text-slate-700">${place.title || place.name}</div>
-                                <div class="text-xs text-slate-500">${place.address || place.formatted_address || ""}</div>
-                            </div>
-                            <div class="text-blue-500"><i class="fa-solid fa-chevron-right"></i></div>
-                        `;
+                        div.innerHTML = `<div><div class="font-bold text-slate-700 text-sm">${place.title}</div><div class="text-[10px] text-slate-400">${place.address || ""}</div></div><i class="fa-solid fa-chevron-right text-blue-500"></i>`;
                         choicesDiv.appendChild(div);
                     });
                 }
-
             } catch (error) {
                 loading.classList.add('hidden');
-                document.getElementById('errorText').innerText = error.message || "Erreur inconnue";
+                document.getElementById('errorText').innerText = error.message;
                 errorMsg.classList.remove('hidden');
             }
         }
 
         function afficherResultatFinal(place) {
-            document.getElementById('choices').innerHTML = ""; // Clear list
-            document.getElementById('searchBox').classList.add('hidden'); // Hide search
-
+            document.getElementById('choices').innerHTML = "";
+            document.getElementById('searchBox').classList.add('hidden');
             const placeId = place.place_id;
-            const lien = `https://search.google.com/local/writereview?placeid=${placeId}`;
-
-            document.getElementById('nomFinal').innerText = place.title || place.name;
-            document.getElementById('adresseFinal').innerText = place.address || place.formatted_address;
-            document.getElementById('inputLienCache').value = lien; // Pour copier
-            document.getElementById('boutonTest').href = lien;
-
-            // Reset bouton copy
-            const btn = document.getElementById('btnCopy');
-            btn.className = "w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3";
-            document.getElementById('btnCopyText').innerText = "COPIER LE LIEN";
-            btn.querySelector('i').className = "fa-regular fa-copy text-lg";
-
+            window.finalLink = `https://search.google.com/local/writereview?placeid=${placeId}`;
+            document.getElementById('nomFinal').innerText = place.title;
+            document.getElementById('adresseFinal').innerText = place.address || "";
             document.getElementById('finalResult').classList.remove('hidden');
         }
 
         function copierLien() {
-            const lien = document.getElementById('inputLienCache').value;
-            
-            // Copie dans le presse-papier
-            navigator.clipboard.writeText(lien).then(() => {
-                // Feedback Visuel
+            navigator.clipboard.writeText(window.finalLink).then(() => {
                 const btn = document.getElementById('btnCopy');
-                btn.className = "w-full bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all mb-3 scale-105";
-                document.getElementById('btnCopyText').innerText = "LIEN COPIÉ !";
-                btn.querySelector('i').className = "fa-solid fa-check text-lg";
-                
-                // Petit effet de vibration sur mobile si supporté
-                if (navigator.vibrate) navigator.vibrate(50);
-            }).catch(err => {
-                alert("Erreur de copie : " + err);
+                const text = document.getElementById('btnCopyText');
+                btn.classList.replace('bg-slate-900', 'bg-green-600');
+                text.innerText = "COPIÉ !";
+                setTimeout(() => {
+                    btn.classList.replace('bg-green-600', 'bg-slate-900');
+                    text.innerText = "COPIER LE LIEN";
+                }, 2000);
             });
-        }
-
-        function resetApp() {
-            document.getElementById('finalResult').classList.add('hidden');
-            document.getElementById('searchBox').classList.remove('hidden');
-            document.getElementById('searchBox').classList.remove('opacity-50');
-            document.getElementById('nom').value = "";
-            document.getElementById('ville').value = "";
         }
     </script>
 </body>
