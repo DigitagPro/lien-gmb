@@ -3,108 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Générateur de Lien NFC</title>
+    <title>Digitag NFC Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <style>
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         input { font-size: 16px !important; }
-        .bg-nfc { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-start pt-6 px-4 font-sans text-slate-800">
+<body class="bg-slate-100 min-h-screen flex flex-col items-center pt-6 px-4 font-sans">
 
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6 text-center border-b-4 border-blue-500">
-        <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-            <i class="fa-solid fa-bolt"></i>
-        </div>
-        <h1 class="text-2xl font-bold text-slate-800 uppercase tracking-tight">Digitag Pro</h1>
-        <p class="text-slate-500 text-sm mt-1">Générateur de liens pour Plaques NFC</p>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6 text-center border-b-4 border-blue-600">
+        <h1 class="text-2xl font-bold text-slate-800 tracking-tight">DIGITAG PRO</h1>
+        <p class="text-slate-500 text-xs mt-1 uppercase tracking-widest">NFC Link Generator</p>
     </div>
 
-    <div id="setupBox" class="hidden w-full max-w-md bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm">
-        <p class="font-bold text-amber-800 mb-2"><i class="fa-solid fa-key mr-2"></i>Configuration initiale</p>
-        <p class="text-amber-700 mb-3">Collez votre clé SerpApi pour activer l'outil sur ce téléphone :</p>
-        <input type="password" id="apiKeyInput" class="w-full p-2 border border-amber-300 rounded mb-2" placeholder="07d69c...">
-        <button onclick="saveApiKey()" class="bg-amber-600 text-white px-4 py-2 rounded font-bold w-full">Enregistrer la clé</button>
+    <div id="setupBox" class="hidden w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <h2 class="font-bold text-slate-800 mb-2">🔑 Configuration</h2>
+        <p class="text-slate-500 text-sm mb-4">Entrez votre nouvelle clé SerpApi :</p>
+        <input type="password" id="apiKeyInput" class="w-full p-3 border rounded-xl mb-3 bg-slate-50" placeholder="Coller la clé ici...">
+        <button onclick="saveApiKey()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Activer l'outil</button>
     </div>
 
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 transition-all" id="searchBox">
-        <div class="space-y-4">
-            <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nom de l'entreprise</label>
-                <div class="relative">
-                    <i class="fa-solid fa-store absolute left-4 top-3.5 text-slate-300"></i>
-                    <input type="text" id="nom" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ex: Restaurant Le Sud">
-                </div>
+    <div id="mainInterface" class="w-full max-w-md space-y-4">
+        <div class="bg-white rounded-2xl shadow-lg p-6" id="searchBox">
+            <div class="space-y-4">
+                <input type="text" id="nom" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4" placeholder="Nom de l'entreprise">
+                <input type="text" id="ville" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4" placeholder="Ville">
+                <button onclick="lancerRecherche()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">
+                    RECHERCHER
+                </button>
             </div>
             
-            <div>
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ville (Optionnel)</label>
-                <div class="relative">
-                    <i class="fa-solid fa-location-dot absolute left-4 top-3.5 text-slate-300"></i>
-                    <input type="text" id="ville" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ex: Marseille">
-                </div>
+            <div id="loading" class="hidden mt-6 text-center">
+                <div class="spinner mb-2"></div>
+                <p class="text-xs text-slate-400">Connexion à Google via Proxy...</p>
             </div>
 
-            <button onclick="lancerRecherche()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
-                <i class="fa-solid fa-magnifying-glass"></i> RECHERCHER
-            </button>
+            <div id="errorMessage" class="hidden mt-4 p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-100">
+                <i class="fa-solid fa-circle-exclamation mr-1"></i> <span id="errorText">Erreur</span>
+                <button onclick="resetKey()" class="block mt-2 underline font-bold text-red-700">Changer la clé API</button>
+            </div>
         </div>
 
-        <div id="loading" class="hidden mt-6 text-center">
-            <div class="spinner mb-2"></div>
-            <p class="text-sm text-slate-400">Recherche sur Google Maps...</p>
-        </div>
-
-        <div id="errorMessage" class="hidden mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span id="errorText">Erreur</span>
-        </div>
+        <div id="choices" class="space-y-3"></div>
     </div>
 
-    <div id="choices" class="w-full max-w-md mt-4 space-y-3"></div>
-
-    <div id="finalResult" class="hidden w-full max-w-md bg-white rounded-2xl shadow-xl p-0 mt-4 border-2 border-green-500 relative overflow-hidden">
-        <div class="bg-green-500 text-white text-[10px] font-bold px-4 py-1 text-center tracking-widest uppercase">Lien Prêt pour Programmation</div>
-        
-        <div class="p-6">
-            <h3 class="text-xl font-bold text-slate-800 mb-1" id="nomFinal">Nom Entreprise</h3>
-            <p class="text-xs text-slate-400 mb-6" id="adresseFinal">Adresse complète</p>
-
-            <input type="text" id="inputLienCache" class="hidden">
-
-            <button onclick="copierLien()" id="btnCopy" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all mb-4">
-                <i class="fa-regular fa-copy text-xl"></i>
-                <span id="btnCopyText">COPIER LE LIEN</span>
-            </button>
-
-            <a id="boutonTest" href="#" target="_blank" class="block w-full text-center text-blue-500 font-semibold text-sm py-2">
-                Tester le lien <i class="fa-solid fa-external-link ml-1 text-[10px]"></i>
-            </a>
+    <div id="finalResult" class="hidden w-full max-w-md bg-white rounded-2xl shadow-2xl p-0 border-2 border-green-500 overflow-hidden">
+        <div class="bg-green-500 text-white text-[10px] font-bold py-2 text-center tracking-widest uppercase">Prêt pour la plaque NFC</div>
+        <div class="p-6 text-center">
+            <h3 class="text-xl font-bold text-slate-800 mb-1" id="nomFinal"></h3>
+            <p class="text-xs text-slate-400 mb-6" id="adresseFinal"></p>
             
-            <button onclick="resetApp()" class="block w-full text-center text-slate-300 text-[10px] mt-6 uppercase tracking-widest hover:text-slate-500">
-                Nouvelle programmation
+            <button onclick="copierLien()" id="btnCopy" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl flex items-center justify-center gap-3 mb-4">
+                <i class="fa-regular fa-copy"></i> <span id="btnCopyText">COPIER LE LIEN</span>
             </button>
+            
+            <button onclick="location.reload()" class="text-slate-300 text-[10px] uppercase font-bold tracking-widest">Nouvelle recherche</button>
         </div>
     </div>
 
     <script>
-        // --- GESTION DE LA CLÉ ---
-        function checkConfig() {
+        // --- LOGIQUE CLÉ ---
+        function checkKey() {
             const key = localStorage.getItem('serpapi_key');
             if (!key) {
                 document.getElementById('setupBox').classList.remove('hidden');
+                document.getElementById('mainInterface').classList.add('hidden');
             }
         }
 
@@ -116,102 +82,95 @@
             }
         }
 
+        function resetKey() {
+            localStorage.removeItem('serpapi_key');
+            location.reload();
+        }
+
         // --- RECHERCHE ---
         async function lancerRecherche() {
             const API_KEY = localStorage.getItem('serpapi_key');
-            if (!API_KEY) {
-                document.getElementById('setupBox').classList.remove('hidden');
-                window.scrollTo(0,0);
-                return;
-            }
-
-            const nom = document.getElementById('nom').value;
-            const ville = document.getElementById('ville').value;
+            const nom = document.getElementById('nom').value.trim();
+            const ville = document.getElementById('ville').value.trim();
             const loading = document.getElementById('loading');
-            const choicesDiv = document.getElementById('choices');
-            const resultDiv = document.getElementById('finalResult');
-            const searchBox = document.getElementById('searchBox');
             const errorMsg = document.getElementById('errorMessage');
+            const choicesDiv = document.getElementById('choices');
 
             if (!nom) return;
 
             loading.classList.remove('hidden');
-            choicesDiv.innerHTML = "";
-            resultDiv.classList.add('hidden');
             errorMsg.classList.add('hidden');
+            choicesDiv.innerHTML = "";
 
+            // Proxy robuste AllOrigins
             const query = encodeURIComponent(nom + " " + ville);
             const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${API_KEY}&type=search`;
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${new Date().getTime()}`;
 
             try {
                 const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("Erreur réseau (Proxy)");
+                
                 const rawData = await response.json();
+                
+                // Vérifier si le contenu existe
+                if (!rawData.contents) throw new Error("Réponse vide du serveur");
+                
                 const data = JSON.parse(rawData.contents);
 
+                if (data.error) {
+                    if (data.error.includes("API key")) throw new Error("Clé API invalide ou expirée.");
+                    throw new Error(data.error);
+                }
+
+                let results = data.local_results || (data.place_results ? [data.place_results] : []);
+
+                if (results.length === 0) throw new Error("Aucun établissement trouvé sur Maps.");
+
                 loading.classList.add('hidden');
 
-                if (data.error) throw new Error("Vérifiez votre clé API ou quota.");
-
-                let resultats = [];
-                if (data.local_results) resultats = data.local_results;
-                else if (data.place_results) resultats.push(data.place_results);
-
-                if (resultats.length === 0) throw new Error("Aucun établissement trouvé.");
-
-                if (resultats.length === 1) {
-                    afficherResultatFinal(resultats);
+                if (results.length === 1) {
+                    showFinal(results);
                 } else {
-                    searchBox.classList.add('opacity-50');
-                    resultats.forEach(place => {
-                        const div = document.createElement('div');
-                        div.className = "bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer active:bg-blue-50 transition-colors";
-                        div.onclick = () => afficherResultatFinal(place);
-                        div.innerHTML = `<div><div class="font-bold text-slate-700">${place.title}</div><div class="text-[10px] text-slate-400 mt-1">${place.address || ""}</div></div><i class="fa-solid fa-chevron-right text-blue-500"></i>`;
-                        choicesDiv.appendChild(div);
+                    results.forEach(place => {
+                        const d = document.createElement('div');
+                        d.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer active:bg-blue-50";
+                        d.onclick = () => showFinal(place);
+                        d.innerHTML = `<div><div class="font-bold text-slate-700">${place.title}</div><div class="text-[10px] text-slate-400">${place.address || ""}</div></div><i class="fa-solid fa-chevron-right text-blue-500"></i>`;
+                        choicesDiv.appendChild(d);
                     });
                 }
-            } catch (error) {
+
+            } catch (err) {
                 loading.classList.add('hidden');
-                document.getElementById('errorText').innerText = error.message;
+                document.getElementById('errorText').innerText = err.message;
                 errorMsg.classList.remove('hidden');
+                console.error(err);
             }
         }
 
-        function afficherResultatFinal(place) {
-            document.getElementById('choices').innerHTML = "";
-            document.getElementById('searchBox').classList.add('hidden');
-            const placeId = place.place_id;
-            const lien = `https://search.google.com/local/writereview?placeid=${placeId}`;
-
-            document.getElementById('nomFinal').innerText = place.title || place.name;
-            document.getElementById('adresseFinal').innerText = place.address || place.formatted_address || "Adresse non disponible";
-            document.getElementById('inputLienCache').value = lien;
-            document.getElementById('boutonTest').href = lien;
+        function showFinal(place) {
+            document.getElementById('mainInterface').classList.add('hidden');
             document.getElementById('finalResult').classList.remove('hidden');
-            window.scrollTo(0,0);
+            document.getElementById('nomFinal').innerText = place.title;
+            document.getElementById('adresseFinal').innerText = place.address || "";
+            window.currentLien = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
         }
 
         function copierLien() {
-            const lien = document.getElementById('inputLienCache').value;
-            navigator.clipboard.writeText(lien).then(() => {
+            navigator.clipboard.writeText(window.currentLien).then(() => {
                 const btn = document.getElementById('btnCopy');
-                const text = document.getElementById('btnCopyText');
                 btn.classList.replace('bg-slate-900', 'bg-green-500');
-                text.innerText = "LIEN COPIÉ !";
+                document.getElementById('btnCopyText').innerText = "LIEN COPIÉ !";
                 if (navigator.vibrate) navigator.vibrate(50);
                 setTimeout(() => {
                     btn.classList.replace('bg-green-500', 'bg-slate-900');
-                    text.innerText = "COPIER LE LIEN";
-                }, 2500);
+                    document.getElementById('btnCopyText').innerText = "COPIER LE LIEN";
+                }, 2000);
             });
         }
 
-        function resetApp() {
-            location.reload();
-        }
-
-        checkConfig();
+        checkKey();
     </script>
 </body>
 </html>
