@@ -16,21 +16,21 @@
 
     <div class="w-full max-w-md bg-white rounded-2xl shadow-md p-6 mb-6 text-center border-b-4 border-blue-600">
         <h1 class="text-2xl font-black italic tracking-tighter text-blue-600 text-center uppercase">Digitag Pro</h1>
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Solution de liens NFC</p>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">NFC Tool - Mobile Optimized</p>
     </div>
 
     <div id="ui-search" class="w-full max-w-md space-y-4">
         <div class="bg-white rounded-2xl shadow-lg p-6">
             <div class="space-y-3">
-                <input type="text" id="nom" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nom de l'entreprise...">
-                <input type="text" id="ville" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ville (ex: Marseille)">
+                <input type="text" id="nom" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold outline-none" placeholder="Nom de l'entreprise...">
+                <input type="text" id="ville" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold outline-none" placeholder="Ville">
                 <button onclick="chercher()" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-wide">
                     Trouver le lien
                 </button>
             </div>
             <div id="loader" class="hidden mt-6 text-center">
                 <div class="spinner mb-2"></div>
-                <p class="text-xs text-slate-400 font-bold italic text-center">Recherche du profil Google...</p>
+                <p class="text-xs text-slate-400 font-bold">Recherche en cours...</p>
             </div>
             <div id="error" class="hidden mt-4 p-4 bg-red-50 text-red-600 text-[10px] rounded-xl font-bold border border-red-100"></div>
         </div>
@@ -38,28 +38,29 @@
     </div>
 
     <div id="ui-final" class="hidden w-full max-w-md bg-white rounded-3xl shadow-2xl border-2 border-green-500 overflow-hidden">
-        <div class="bg-green-500 py-2 text-center text-white text-[10px] font-black uppercase tracking-widest">Lien validé</div>
+        <div class="bg-green-500 py-2 text-center text-white text-[10px] font-black uppercase tracking-widest">Lien Généré avec succès</div>
         <div class="p-8 text-center">
             <h2 id="final-name" class="text-2xl font-black text-slate-800 mb-1"></h2>
             <p id="final-addr" class="text-xs text-slate-400 mb-8"></p>
             
+            <input type="text" id="url-stock" class="sr-only" readonly>
+
             <div class="space-y-3">
-                <a id="open-btn" href="#" target="_blank" class="w-full bg-blue-50 text-blue-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 border border-blue-200 active:scale-95 transition-all">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                    OUVRIR LE LIEN
+                <a id="open-btn" href="#" target="_blank" class="w-full bg-blue-50 text-blue-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 border border-blue-200 active:scale-95 transition-all uppercase text-sm">
+                    <i class="fa-solid fa-eye"></i> Vérifier la fiche
                 </a>
 
-                <button onclick="copy()" id="copy-btn" class="w-full bg-slate-900 text-white font-black py-6 rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-90 transition-all">
+                <button onclick="copyMobile()" id="copy-btn" class="w-full bg-slate-900 text-white font-black py-6 rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-90 transition-all">
                     <i class="fa-regular fa-copy text-2xl"></i>
-                    <span id="copy-text" class="text-lg uppercase">Copier le lien</span>
+                    <span id="copy-text" class="text-lg uppercase">Copier pour NFC</span>
                 </button>
             </div>
             
-            <button onclick="location.reload()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase underline tracking-tighter">Nouvelle recherche</button>
+            <button onclick="location.reload()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase underline">Nouvelle recherche</button>
         </div>
     </div>
 
-    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 6.1 - Open Link Added</p>
+    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 6.2 - Mobile Fix</p>
 
     <script>
         const MY_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
@@ -72,7 +73,6 @@
             const resultsDiv = document.getElementById('results');
 
             if(!nom) return;
-            
             loader.classList.remove('hidden');
             error.classList.add('hidden');
             resultsDiv.innerHTML = "";
@@ -83,27 +83,23 @@
 
             try {
                 const resp = await fetch(proxy);
-                if (!resp.ok) throw new Error("Erreur tunnel.");
                 const data = await resp.json();
 
                 if(data.error) throw new Error(data.error);
 
                 const items = data.local_results || (data.place_results ? [data.place_results] : []);
-                if(items.length === 0) throw new Error("Aucun résultat.");
+                if(items.length === 0) throw new Error("Aucun établissement trouvé.");
 
                 loader.classList.add('hidden');
 
-                if(items.length === 1) {
-                    showSuccess(items);
-                } else {
-                    items.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = "bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer";
-                        card.onclick = () => showSuccess(item);
-                        card.innerHTML = `<div><div class="font-bold text-slate-800 text-left">${item.title}</div><div class="text-[10px] text-slate-400 text-left">${item.address || ''}</div></div><i class="fa-solid fa-chevron-right text-blue-600"></i>`;
-                        resultsDiv.appendChild(card);
-                    });
-                }
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer mb-2";
+                    card.onclick = () => showSuccess(item);
+                    card.innerHTML = `<div><div class="font-bold text-slate-800 text-left text-sm">${item.title}</div><div class="text-[10px] text-slate-400 text-left">${item.address || ''}</div></div><i class="fa-solid fa-chevron-right text-blue-600"></i>`;
+                    resultsDiv.appendChild(card);
+                });
+
             } catch (e) {
                 loader.classList.add('hidden');
                 error.innerText = "ERREUR : " + e.message;
@@ -112,30 +108,54 @@
         }
 
         function showSuccess(place) {
+            // On s'assure que le place_id existe, sinon on cherche une alternative
+            const pId = place.place_id || place.data_id;
+            
+            if (!pId) {
+                alert("Impossible de récupérer l'identifiant Google de cette fiche.");
+                return;
+            }
+
+            const finalURL = `https://search.google.com/local/writereview?placeid=${pId}`;
+            
             document.getElementById('ui-search').classList.add('hidden');
             document.getElementById('ui-final').classList.remove('hidden');
             document.getElementById('final-name').innerText = place.title;
             document.getElementById('final-addr').innerText = place.address || "";
             
-            const generatedURL = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
-            window.finalURL = generatedURL;
-            
-            // On met à jour le lien du bouton Ouvrir
-            document.getElementById('open-btn').href = generatedURL;
+            // On stocke l'URL dans le champ de texte masqué
+            document.getElementById('url-stock').value = finalURL;
+            document.getElementById('open-btn').href = finalURL;
         }
 
-        function copy() {
-            navigator.clipboard.writeText(window.finalURL).then(() => {
-                const btn = document.getElementById('copy-btn');
-                const txt = document.getElementById('copy-text');
-                btn.classList.replace('bg-slate-900', 'bg-green-500');
-                txt.innerText = "COPIÉ !";
-                if(navigator.vibrate) navigator.vibrate(50);
-                setTimeout(() => {
-                    btn.classList.replace('bg-green-500', 'bg-slate-900');
-                    txt.innerText = "COPIER LE LIEN";
-                }, 2000);
-            });
+        function copyMobile() {
+            const copyText = document.getElementById("url-stock");
+            
+            // Méthode de copie compatible mobile (iOS/Android)
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // Pour les mobiles
+
+            try {
+                navigator.clipboard.writeText(copyText.value).then(() => {
+                    updateUI();
+                });
+            } catch (err) {
+                // Fallback pour les vieux navigateurs
+                document.execCommand("copy");
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            const btn = document.getElementById('copy-btn');
+            const txt = document.getElementById('copy-text');
+            btn.classList.replace('bg-slate-900', 'bg-green-500');
+            txt.innerText = "COPIÉ !";
+            if(navigator.vibrate) navigator.vibrate(50);
+            setTimeout(() => {
+                btn.classList.replace('bg-green-500', 'bg-slate-900');
+                txt.innerText = "COPIER POUR NFC";
+            }, 2000);
         }
     </script>
 </body>
