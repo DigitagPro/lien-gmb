@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Digitag - Générateur NFC</title>
+    <title>Digitag NFC Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -12,123 +12,124 @@
         input { font-size: 16px !important; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-start pt-6 px-4 font-sans text-slate-800">
+<body class="bg-slate-50 min-h-screen flex flex-col items-center pt-6 px-4 font-sans text-slate-900">
 
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-6 text-center border-b-4 border-blue-600">
-        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
-            <i class="fa-solid fa-wifi"></i>
-        </div>
-        <h1 class="text-2xl font-bold text-slate-800">Générateur lien GMB</h1>
-        <p class="text-slate-500 text-sm mt-1">Outil pour plaques NFC.</p>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-md p-6 mb-6 text-center border-b-4 border-blue-600">
+        <h1 class="text-2xl font-black italic tracking-tighter text-blue-600">DIGITAG PRO</h1>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">NFC Link Solution</p>
     </div>
 
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 transition-all" id="searchBox">
-        <div class="space-y-4">
-            <input type="text" id="nom" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4" placeholder="Nom de l'entreprise">
-            <input type="text" id="ville" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-4 px-4" placeholder="Ville">
-            <button onclick="lancerRecherche()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
-                <i class="fa-solid fa-magnifying-glass"></i> RECHERCHER
+    <div id="ui-search" class="w-full max-w-md space-y-4">
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="space-y-3">
+                <input type="text" id="nom" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold" placeholder="Nom de l'entreprise...">
+                <input type="text" id="ville" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold" placeholder="Ville (ex: Lyon)">
+                <button onclick="chercher()" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-wide">
+                    Trouver l'entreprise
+                </button>
+            </div>
+            <div id="loader" class="hidden mt-6 text-center">
+                <div class="spinner mb-2"></div>
+                <p class="text-xs text-slate-400">Connexion sécurisée via AllOrigins...</p>
+            </div>
+            <div id="error" class="hidden mt-4 p-4 bg-red-50 text-red-600 text-xs rounded-xl font-bold"></div>
+        </div>
+        <div id="results" class="space-y-2 text-left"></div>
+    </div>
+
+    <div id="ui-final" class="hidden w-full max-w-md bg-white rounded-3xl shadow-2xl border-2 border-green-500 overflow-hidden">
+        <div class="bg-green-500 py-2 text-center text-white text-[10px] font-black uppercase tracking-widest">Lien prêt pour NFC</div>
+        <div class="p-8 text-center">
+            <h2 id="final-name" class="text-2xl font-black text-slate-800 mb-2"></h2>
+            <p id="final-addr" class="text-sm text-slate-400 mb-8"></p>
+            
+            <button onclick="copy()" id="copy-btn" class="w-full bg-slate-900 text-white font-black py-6 rounded-2xl shadow-2xl flex items-center justify-center gap-3 active:scale-90 transition-all">
+                <i class="fa-regular fa-copy text-2xl"></i>
+                <span id="copy-text" class="text-lg">COPIER LE LIEN</span>
             </button>
+            
+            <button onclick="location.reload()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase tracking-widest underline">Nouvelle recherche</button>
         </div>
-
-        <div id="loading" class="hidden mt-6 text-center">
-            <div class="spinner mb-2"></div>
-            <p class="text-sm text-slate-500 italic">Connexion sécurisée...</p>
-        </div>
-
-        <div id="errorMessage" class="hidden mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span id="errorText">Erreur</span>
-        </div>
-    </div>
-
-    <div id="choices" class="w-full max-w-md mt-4 space-y-3"></div>
-
-    <div id="finalResult" class="hidden w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-4 border-2 border-green-500 relative overflow-hidden">
-        <div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase">Prêt pour NFC</div>
-        <h3 class="text-lg font-bold text-slate-800 mb-1" id="nomFinal">Nom Entreprise</h3>
-        <p class="text-xs text-slate-400 mb-6" id="adresseFinal">Adresse</p>
-        <button onclick="copierLien()" id="btnCopy" class="w-full bg-slate-900 text-white font-bold py-5 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3">
-            <i class="fa-regular fa-copy text-lg"></i>
-            <span id="btnCopyText">COPIER LE LIEN</span>
-        </button>
-        <button onclick="location.reload()" class="block w-full text-center text-slate-400 text-xs mt-4 underline">Nouvelle recherche</button>
     </div>
 
     <script>
-        const API_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
+        // TA CLÉ SERPAPI
+        const MY_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
 
-        async function lancerRecherche() {
+        async function chercher() {
             const nom = document.getElementById('nom').value;
             const ville = document.getElementById('ville').value;
-            const loading = document.getElementById('loading');
-            const choicesDiv = document.getElementById('choices');
-            const resultDiv = document.getElementById('finalResult');
-            const errorMsg = document.getElementById('errorMessage');
+            const loader = document.getElementById('loader');
+            const error = document.getElementById('error');
+            const resultsDiv = document.getElementById('results');
 
-            if (!nom) return;
+            if(!nom) return;
+            
+            loader.classList.remove('hidden');
+            error.classList.add('hidden');
+            resultsDiv.innerHTML = "";
 
-            loading.classList.remove('hidden');
-            choicesDiv.innerHTML = "";
-            resultDiv.classList.add('hidden');
-            errorMsg.classList.add('hidden');
-
-            // --- NOUVEAU PROXY GRATUIT (AllOrigins) ---
-            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(nom + " " + ville)}&api_key=${API_KEY}&type=search`;
+            // --- LA MODIFICATION EST ICI ---
+            const query = encodeURIComponent(nom + " " + ville);
+            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${MY_KEY}`;
+            
+            // On utilise AllOrigins pour contourner le blocage
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
             try {
                 const response = await fetch(proxyUrl);
-                const result = await response.json();
+                if (!response.ok) throw new Error("Erreur de connexion au proxy.");
                 
-                // On décode le contenu renvoyé par le proxy
-                const data = JSON.parse(result.contents);
+                const json = await response.json();
+                
+                // AllOrigins met le contenu de SerpApi dans une chaîne de caractères "contents"
+                // On doit donc le re-transformer en objet JSON
+                const data = JSON.parse(json.contents);
 
-                loading.classList.add('hidden');
+                if(data.error) throw new Error(data.error);
 
-                if (data.error) throw new Error(data.error);
+                const items = data.local_results || (data.place_results ? [data.place_results] : []);
+                
+                if(items.length === 0) throw new Error("Aucun résultat trouvé sur Google Maps.");
 
-                let resultats = data.local_results || (data.place_results ? [data.place_results] : []);
+                loader.classList.add('hidden');
 
-                if (resultats.length === 0) throw new Error("Aucun établissement trouvé.");
-
-                if (resultats.length === 1) {
-                    afficherResultatFinal(resultats);
+                if(items.length === 1) {
+                    showSuccess(items);
                 } else {
-                    resultats.forEach(place => {
-                        const div = document.createElement('div');
-                        div.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer active:bg-blue-50";
-                        div.onclick = () => afficherResultatFinal(place);
-                        div.innerHTML = `<div><div class="font-bold text-slate-700 text-sm">${place.title}</div><div class="text-[10px] text-slate-400">${place.address || ""}</div></div><i class="fa-solid fa-chevron-right text-blue-500"></i>`;
-                        choicesDiv.appendChild(div);
+                    items.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = "bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer active:bg-blue-50 transition-all";
+                        card.onclick = () => showSuccess(item);
+                        card.innerHTML = `<div><div class="font-bold text-slate-800">${item.title}</div><div class="text-[10px] text-slate-400">${item.address || ''}</div></div><i class="fa-solid fa-chevron-right text-blue-500"></i>`;
+                        resultsDiv.appendChild(card);
                     });
                 }
-            } catch (error) {
-                loading.classList.add('hidden');
-                document.getElementById('errorText').innerText = error.message;
-                errorMsg.classList.remove('hidden');
+            } catch (e) {
+                loader.classList.add('hidden');
+                error.innerText = "Détail : " + e.message;
+                error.classList.remove('hidden');
             }
         }
 
-        function afficherResultatFinal(place) {
-            document.getElementById('choices').innerHTML = "";
-            document.getElementById('searchBox').classList.add('hidden');
-            const placeId = place.place_id;
-            window.finalLink = `https://search.google.com/local/writereview?placeid=${placeId}`;
-            document.getElementById('nomFinal').innerText = place.title;
-            document.getElementById('adresseFinal').innerText = place.address || "";
-            document.getElementById('finalResult').classList.remove('hidden');
+        function showSuccess(place) {
+            document.getElementById('ui-search').classList.add('hidden');
+            document.getElementById('ui-final').classList.remove('hidden');
+            document.getElementById('final-name').innerText = place.title;
+            document.getElementById('final-addr').innerText = place.address || "";
+            window.finalURL = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
         }
 
-        function copierLien() {
-            navigator.clipboard.writeText(window.finalLink).then(() => {
-                const btn = document.getElementById('btnCopy');
-                const text = document.getElementById('btnCopyText');
-                btn.classList.replace('bg-slate-900', 'bg-green-600');
-                text.innerText = "COPIÉ !";
+        function copy() {
+            navigator.clipboard.writeText(window.finalURL).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const txt = document.getElementById('copy-text');
+                btn.classList.replace('bg-slate-900', 'bg-green-500');
+                txt.innerText = "LIEN COPIÉ !";
+                if(navigator.vibrate) navigator.vibrate(50);
                 setTimeout(() => {
-                    btn.classList.replace('bg-green-600', 'bg-slate-900');
-                    text.innerText = "COPIER LE LIEN";
+                    btn.classList.replace('bg-green-500', 'bg-slate-900');
+                    txt.innerText = "COPIER LE LIEN";
                 }, 2000);
             });
         }
