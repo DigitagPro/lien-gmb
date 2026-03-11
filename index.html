@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* Petite animation pour le chargement */
         .spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #3b82f6;
@@ -19,8 +18,6 @@
             margin: 0 auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Pour éviter que ça zoom sur mobile quand on clique sur input */
         input { font-size: 16px !important; }
     </style>
 </head>
@@ -93,14 +90,12 @@
     </div>
 
     <script>
-        // TA CLÉ API
         const API_KEY = "dd82d03c685be79f0f190f6c7174a971bad853737eb246985bcf500ae834735c";
 
         async function lancerRecherche() {
             const nom = document.getElementById('nom').value;
             const ville = document.getElementById('ville').value;
             
-            // UI Elements
             const loading = document.getElementById('loading');
             const choicesDiv = document.getElementById('choices');
             const resultDiv = document.getElementById('finalResult');
@@ -109,21 +104,22 @@
 
             if (!nom) return;
 
-            // Reset UI
             loading.classList.remove('hidden');
             choicesDiv.innerHTML = "";
             resultDiv.classList.add('hidden');
             errorMsg.classList.add('hidden');
             searchBox.classList.remove('opacity-50');
 
-            // API Call via Proxy
-            const query = encodeURIComponent(nom + " " + ville);
-            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${API_KEY}&type=search`;
-            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+            // --- NOUVEAU PROXY ---
+            const targetUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(nom + " " + ville)}&api_key=${API_KEY}&type=search`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
             try {
                 const response = await fetch(proxyUrl);
-                const data = await response.json();
+                const rawData = await response.json();
+                
+                // On décode les données renvoyées par AllOrigins
+                const data = JSON.parse(rawData.contents);
 
                 loading.classList.add('hidden');
 
@@ -133,22 +129,16 @@
                 if (data.local_results && data.local_results.length > 0) resultats = data.local_results;
                 else if (data.place_results) resultats.push(data.place_results);
 
-                if (resultats.length === 0) {
-                    throw new Error("Aucune entreprise trouvée.");
-                }
+                if (resultats.length === 0) throw new Error("Aucune entreprise trouvée.");
 
-                // Affichage des résultats
                 if (resultats.length === 1) {
-                    afficherResultatFinal(resultats[0]);
+                    afficherResultatFinal(resultats);
                 } else {
-                    // Plusieurs choix
-                    searchBox.classList.add('opacity-50'); // On grise la recherche
-                    
+                    searchBox.classList.add('opacity-50');
                     resultats.forEach(place => {
                         const div = document.createElement('div');
-                        div.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer hover:border-blue-500 transition-colors";
+                        div.className = "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer hover:border-blue-500 transition-colors mb-2";
                         div.onclick = () => afficherResultatFinal(place);
-                        
                         div.innerHTML = `
                             <div>
                                 <div class="font-bold text-slate-700">${place.title || place.name}</div>
@@ -159,50 +149,40 @@
                         choicesDiv.appendChild(div);
                     });
                 }
-
             } catch (error) {
                 loading.classList.add('hidden');
-                document.getElementById('errorText').innerText = error.message || "Erreur inconnue";
+                document.getElementById('errorText').innerText = error.message;
                 errorMsg.classList.remove('hidden');
             }
         }
 
         function afficherResultatFinal(place) {
-            document.getElementById('choices').innerHTML = ""; // Clear list
-            document.getElementById('searchBox').classList.add('hidden'); // Hide search
+            document.getElementById('choices').innerHTML = "";
+            document.getElementById('searchBox').classList.add('hidden');
 
             const placeId = place.place_id;
             const lien = `https://search.google.com/local/writereview?placeid=${placeId}`;
 
             document.getElementById('nomFinal').innerText = place.title || place.name;
-            document.getElementById('adresseFinal').innerText = place.address || place.formatted_address;
-            document.getElementById('inputLienCache').value = lien; // Pour copier
+            document.getElementById('adresseFinal').innerText = place.address || place.formatted_address || "Adresse non disponible";
+            document.getElementById('inputLienCache').value = lien;
             document.getElementById('boutonTest').href = lien;
-
-            // Reset bouton copy
-            const btn = document.getElementById('btnCopy');
-            btn.className = "w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mb-3";
-            document.getElementById('btnCopyText').innerText = "COPIER LE LIEN";
-            btn.querySelector('i').className = "fa-regular fa-copy text-lg";
 
             document.getElementById('finalResult').classList.remove('hidden');
         }
 
         function copierLien() {
             const lien = document.getElementById('inputLienCache').value;
-            
-            // Copie dans le presse-papier
             navigator.clipboard.writeText(lien).then(() => {
-                // Feedback Visuel
                 const btn = document.getElementById('btnCopy');
-                btn.className = "w-full bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all mb-3 scale-105";
-                document.getElementById('btnCopyText').innerText = "LIEN COPIÉ !";
-                btn.querySelector('i').className = "fa-solid fa-check text-lg";
-                
-                // Petit effet de vibration sur mobile si supporté
+                const text = document.getElementById('btnCopyText');
+                btn.classList.replace('bg-slate-900', 'bg-green-500');
+                text.innerText = "LIEN COPIÉ !";
                 if (navigator.vibrate) navigator.vibrate(50);
-            }).catch(err => {
-                alert("Erreur de copie : " + err);
+                setTimeout(() => {
+                    btn.classList.replace('bg-green-500', 'bg-slate-900');
+                    text.innerText = "COPIER LE LIEN";
+                }, 2000);
             });
         }
 
