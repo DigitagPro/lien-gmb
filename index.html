@@ -10,28 +10,27 @@
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         input { font-size: 16px !important; }
-        .url-display { word-break: break-all; font-family: monospace; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col items-center pt-6 px-4 font-sans text-slate-900">
 
     <div class="w-full max-w-md bg-white rounded-2xl shadow-md p-6 mb-6 text-center border-b-4 border-blue-600">
         <h1 class="text-2xl font-black italic tracking-tighter text-blue-600 text-center uppercase">Digitag Pro</h1>
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">NFC Link Solution</p>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Solution de liens NFC</p>
     </div>
 
     <div id="ui-search" class="w-full max-w-md space-y-4">
         <div class="bg-white rounded-2xl shadow-lg p-6">
             <div class="space-y-3">
                 <input type="text" id="nom" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nom de l'entreprise...">
-                <input type="text" id="ville" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ville (ex: Lyon)">
+                <input type="text" id="ville" class="w-full bg-slate-100 border-none rounded-xl py-4 px-4 font-semibold focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ville (ex: Marseille)">
                 <button onclick="chercher()" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-wide">
-                    Lancer la recherche
+                    Trouver le lien
                 </button>
             </div>
             <div id="loader" class="hidden mt-6 text-center">
                 <div class="spinner mb-2"></div>
-                <p class="text-xs text-slate-400 font-bold">Connexion au tunnel de recherche...</p>
+                <p class="text-xs text-slate-400 font-bold italic text-center">Recherche du profil Google...</p>
             </div>
             <div id="error" class="hidden mt-4 p-4 bg-red-50 text-red-600 text-[10px] rounded-xl font-bold border border-red-100"></div>
         </div>
@@ -39,26 +38,28 @@
     </div>
 
     <div id="ui-final" class="hidden w-full max-w-md bg-white rounded-3xl shadow-2xl border-2 border-green-500 overflow-hidden">
-        <div class="bg-green-500 py-2 text-center text-white text-[10px] font-black uppercase tracking-widest">Lien prêt pour NFC</div>
+        <div class="bg-green-500 py-2 text-center text-white text-[10px] font-black uppercase tracking-widest">Lien validé</div>
         <div class="p-8 text-center">
             <h2 id="final-name" class="text-2xl font-black text-slate-800 mb-1"></h2>
-            <p id="final-addr" class="text-xs text-slate-400 mb-6"></p>
+            <p id="final-addr" class="text-xs text-slate-400 mb-8"></p>
             
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6">
-                <p class="text-[9px] uppercase font-bold text-slate-400 mb-1 tracking-widest text-left">Lien généré :</p>
-                <p id="final-url-text" class="url-display text-[10px] text-blue-600 text-left leading-tight"></p>
+            <div class="space-y-3">
+                <a id="open-btn" href="#" target="_blank" class="w-full bg-blue-50 text-blue-600 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 border border-blue-200 active:scale-95 transition-all">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    OUVRIR LE LIEN
+                </a>
+
+                <button onclick="copy()" id="copy-btn" class="w-full bg-slate-900 text-white font-black py-6 rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-90 transition-all">
+                    <i class="fa-regular fa-copy text-2xl"></i>
+                    <span id="copy-text" class="text-lg uppercase">Copier le lien</span>
+                </button>
             </div>
-            
-            <button onclick="copy()" id="copy-btn" class="w-full bg-slate-900 text-white font-black py-6 rounded-2xl shadow-2xl flex items-center justify-center gap-3 active:scale-90 transition-all">
-                <i class="fa-regular fa-copy text-2xl"></i>
-                <span id="copy-text" class="text-lg uppercase font-bold">Copier le lien</span>
-            </button>
             
             <button onclick="location.reload()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase underline tracking-tighter">Nouvelle recherche</button>
         </div>
     </div>
 
-    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 7.0 - Link View Enabled</p>
+    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 6.1 - Open Link Added</p>
 
     <script>
         const MY_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
@@ -78,30 +79,28 @@
 
             const query = encodeURIComponent(nom + " " + ville);
             const api = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${MY_KEY}`;
-            
-            // Proxy CodeTabs
             const proxy = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(api)}`;
 
             try {
                 const resp = await fetch(proxy);
-                if (!resp.ok) throw new Error("Le tunnel est temporairement saturé.");
-                
+                if (!resp.ok) throw new Error("Erreur tunnel.");
                 const data = await resp.json();
-                if(data.error) throw new Error("Google : " + data.error);
+
+                if(data.error) throw new Error(data.error);
 
                 const items = data.local_results || (data.place_results ? [data.place_results] : []);
-                if(items.length === 0) throw new Error("Aucun établissement trouvé.");
+                if(items.length === 0) throw new Error("Aucun résultat.");
 
                 loader.classList.add('hidden');
 
                 if(items.length === 1) {
-                    showSuccess(items[0]);
+                    showSuccess(items);
                 } else {
                     items.forEach(item => {
                         const card = document.createElement('div');
-                        card.className = "bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer active:bg-blue-50";
+                        card.className = "bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer";
                         card.onclick = () => showSuccess(item);
-                        card.innerHTML = `<div><div class="font-bold text-slate-800">${item.title}</div><div class="text-[10px] text-slate-400">${item.address || ''}</div></div><i class="fa-solid fa-chevron-right text-blue-600"></i>`;
+                        card.innerHTML = `<div><div class="font-bold text-slate-800 text-left">${item.title}</div><div class="text-[10px] text-slate-400 text-left">${item.address || ''}</div></div><i class="fa-solid fa-chevron-right text-blue-600"></i>`;
                         resultsDiv.appendChild(card);
                     });
                 }
@@ -118,9 +117,11 @@
             document.getElementById('final-name').innerText = place.title;
             document.getElementById('final-addr').innerText = place.address || "";
             
-            const generatedUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
-            document.getElementById('final-url-text').innerText = generatedUrl;
-            window.finalURL = generatedUrl;
+            const generatedURL = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
+            window.finalURL = generatedURL;
+            
+            // On met à jour le lien du bouton Ouvrir
+            document.getElementById('open-btn').href = generatedURL;
         }
 
         function copy() {
