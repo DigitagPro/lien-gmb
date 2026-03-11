@@ -10,12 +10,13 @@
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         input { font-size: 16px !important; }
+        .url-display { word-break: break-all; font-family: monospace; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col items-center pt-6 px-4 font-sans text-slate-900">
 
     <div class="w-full max-w-md bg-white rounded-2xl shadow-md p-6 mb-6 text-center border-b-4 border-blue-600">
-        <h1 class="text-2xl font-black italic tracking-tighter text-blue-600 text-center">DIGITAG PRO</h1>
+        <h1 class="text-2xl font-black italic tracking-tighter text-blue-600 text-center uppercase">Digitag Pro</h1>
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">NFC Link Solution</p>
     </div>
 
@@ -40,19 +41,24 @@
     <div id="ui-final" class="hidden w-full max-w-md bg-white rounded-3xl shadow-2xl border-2 border-green-500 overflow-hidden">
         <div class="bg-green-500 py-2 text-center text-white text-[10px] font-black uppercase tracking-widest">Lien prêt pour NFC</div>
         <div class="p-8 text-center">
-            <h2 id="final-name" class="text-2xl font-black text-slate-800 mb-2"></h2>
-            <p id="final-addr" class="text-sm text-slate-400 mb-8"></p>
+            <h2 id="final-name" class="text-2xl font-black text-slate-800 mb-1"></h2>
+            <p id="final-addr" class="text-xs text-slate-400 mb-6"></p>
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6">
+                <p class="text-[9px] uppercase font-bold text-slate-400 mb-1 tracking-widest text-left">Lien généré :</p>
+                <p id="final-url-text" class="url-display text-[10px] text-blue-600 text-left leading-tight"></p>
+            </div>
             
             <button onclick="copy()" id="copy-btn" class="w-full bg-slate-900 text-white font-black py-6 rounded-2xl shadow-2xl flex items-center justify-center gap-3 active:scale-90 transition-all">
                 <i class="fa-regular fa-copy text-2xl"></i>
-                <span id="copy-text" class="text-lg uppercase">Copier le lien</span>
+                <span id="copy-text" class="text-lg uppercase font-bold">Copier le lien</span>
             </button>
             
             <button onclick="location.reload()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase underline tracking-tighter">Nouvelle recherche</button>
         </div>
     </div>
 
-    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 6.0 - Stable Blue</p>
+    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 7.0 - Link View Enabled</p>
 
     <script>
         const MY_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
@@ -73,7 +79,7 @@
             const query = encodeURIComponent(nom + " " + ville);
             const api = `https://serpapi.com/search.json?engine=google_maps&q=${query}&api_key=${MY_KEY}`;
             
-            // Proxy CodeTabs (le plus fiable actuellement)
+            // Proxy CodeTabs
             const proxy = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(api)}`;
 
             try {
@@ -81,17 +87,15 @@
                 if (!resp.ok) throw new Error("Le tunnel est temporairement saturé.");
                 
                 const data = await resp.json();
-
                 if(data.error) throw new Error("Google : " + data.error);
 
                 const items = data.local_results || (data.place_results ? [data.place_results] : []);
-                
                 if(items.length === 0) throw new Error("Aucun établissement trouvé.");
 
                 loader.classList.add('hidden');
 
                 if(items.length === 1) {
-                    showSuccess(items);
+                    showSuccess(items[0]);
                 } else {
                     items.forEach(item => {
                         const card = document.createElement('div');
@@ -113,7 +117,10 @@
             document.getElementById('ui-final').classList.remove('hidden');
             document.getElementById('final-name').innerText = place.title;
             document.getElementById('final-addr').innerText = place.address || "";
-            window.finalURL = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
+            
+            const generatedUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
+            document.getElementById('final-url-text').innerText = generatedUrl;
+            window.finalURL = generatedUrl;
         }
 
         function copy() {
@@ -121,7 +128,7 @@
                 const btn = document.getElementById('copy-btn');
                 const txt = document.getElementById('copy-text');
                 btn.classList.replace('bg-slate-900', 'bg-green-500');
-                txt.innerText = "LIEN COPIÉ !";
+                txt.innerText = "COPIÉ !";
                 if(navigator.vibrate) navigator.vibrate(50);
                 setTimeout(() => {
                     btn.classList.replace('bg-green-500', 'bg-slate-900');
