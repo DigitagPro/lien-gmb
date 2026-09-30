@@ -59,10 +59,33 @@
         </div>
     </div>
 
-    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 7.0 - Backend sécurisé</p>
+    <p class="text-[8px] text-slate-300 mt-8 uppercase font-bold tracking-widest">Version 7.0 - Simple</p>
 
     <script>
         const $ = (id) => document.getElementById(id);
+
+        const MY_KEY = "328e85de5f06a1f5f24666e8367a7614c81522d7d0b561bd0b42851a90e8c451";
+
+        // Plusieurs proxys CORS : si l'un est en panne, on essaie le suivant
+        const PROXIES = [
+            (u) => 'https://corsproxy.io/?' + encodeURIComponent(u),
+            (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+            (u) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+        ];
+
+        async function fetchSerp(q) {
+            const api = 'https://serpapi.com/search.json?engine=google_maps&type=search&hl=fr&q=' + encodeURIComponent(q) + '&api_key=' + MY_KEY;
+            let lastErr;
+            for (const p of PROXIES) {
+                try {
+                    const r = await fetch(p(api));
+                    const data = await r.json();
+                    if (data.error) throw new Error(data.error);
+                    return data;
+                } catch (e) { lastErr = e; }
+            }
+            throw lastErr || new Error('Aucun proxy disponible');
+        }
 
         $('form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -75,12 +98,12 @@
             $('results').innerHTML = '';
 
             try {
-                const resp = await fetch('/api/search?q=' + encodeURIComponent((nom + ' ' + ville).trim()));
-                const data = await resp.json();
-                if (!resp.ok || data.error) throw new Error(data.error || 'Erreur ' + resp.status);
-                if (!data.results.length) throw new Error('Aucun établissement trouvé.');
+                const data = await fetchSerp((nom + ' ' + ville).trim());
+                const raw = data.local_results || (data.place_results ? [data.place_results] : []);
+                const results = raw.filter(p => p.place_id).map(p => ({ title: p.title, address: p.address || '', place_id: p.place_id }));
+                if (!results.length) throw new Error('Aucun établissement trouvé.');
 
-                data.results.forEach((item) => {
+                results.forEach((item) => {
                     const card = document.createElement('div');
                     card.className = 'bg-white p-4 rounded-xl shadow-md border border-slate-100 flex justify-between items-center cursor-pointer';
                     card.onclick = () => showSuccess(item);
